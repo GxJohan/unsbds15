@@ -1,0 +1,595 @@
+============================================================================================================
+Solucionario de las preguntas en la PC15 del curso de Base de Datos 1 - Ing. de Sistemas e Informática - UNS
+=============================================================================================================
+GRUPO DE LABORATORIOS: A-B-C
+================================================================================
+Docente: Johan López Heredia - @jlopez@uns.edu.pe
+========================================================================
+Gestor de Base de Datos: Sybase en SQL ANYWHERE 11,12
+========================================================================
+-- Ejercicio 1: Obtener el nombre, apellido y título del puesto de los empleados que tienen un salario mayor al promedio de su departamento
+SELECT e.FIRST_NAME, e.LAST_NAME, j.JOB_TITLE
+FROM EMPLOYEES e
+JOIN JOBS j ON e.JOB_ID = j.JOB_ID
+WHERE e.SALARY > (
+  SELECT AVG(SALARY)
+  FROM EMPLOYEES
+  WHERE DEPARTMENT_ID = e.DEPARTMENT_ID
+);
+
+-- Ejercicio 2: Listar los departamentos y la cantidad de empleados en cada uno, incluyendo aquellos departamentos sin empleados
+SELECT d.DEPARTMENT_NAME, COUNT(e.EMPLOYEE_ID) AS EMPLOYEE_COUNT
+FROM DEPARTMENTS d
+LEFT JOIN EMPLOYEES e ON d.DEPARTMENT_ID = e.DEPARTMENT_ID
+GROUP BY d.DEPARTMENT_NAME;
+
+-- Ejercicio 3: Obtener el nombre y apellido de los empleados que han trabajado en más de un departamento
+SELECT e.FIRST_NAME, e.LAST_NAME
+FROM EMPLOYEES e
+WHERE EXISTS (
+  SELECT 1
+  FROM JOB_HISTORY jh
+  WHERE e.EMPLOYEE_ID = jh.EMPLOYEE_ID
+    AND e.DEPARTMENT_ID <> jh.DEPARTMENT_ID
+);
+
+-- Ejercicio 4: Listar los gerentes y el número de empleados a su cargo, ordenados por la cantidad de empleados de forma descendente
+SELECT m.FIRST_NAME, m.LAST_NAME, COUNT(e.EMPLOYEE_ID) AS EMPLOYEE_COUNT
+FROM EMPLOYEES m
+LEFT JOIN EMPLOYEES e ON m.EMPLOYEE_ID = e.MANAGER_ID
+GROUP BY m.FIRST_NAME, m.LAST_NAME
+ORDER BY EMPLOYEE_COUNT DESC;
+
+-- Ejercicio 5: Obtener el nombre y apellido de los empleados que tienen un salario mayor al promedio de todos los empleados y que pertenecen a un departamento con más de 5 empleados
+SELECT e.FIRST_NAME, e.LAST_NAME
+FROM EMPLOYEES e
+WHERE e.SALARY > (SELECT AVG(SALARY) FROM EMPLOYEES)
+  AND e.DEPARTMENT_ID IN (
+    SELECT DEPARTMENT_ID
+    FROM EMPLOYEES
+    GROUP BY DEPARTMENT_ID
+    HAVING COUNT(*) > 5
+  );
+
+=============================
+Ejercicios con Fechas:
+==============================
+
+-- Ejercicio 1: Obtener el nombre, apellido y fecha de contratación de los empleados que fueron contratados en el año 2000
+SELECT FIRST_NAME, LAST_NAME, HIRE_DATE
+FROM EMPLOYEES
+WHERE YEAR(HIRE_DATE) = 2000;
+
+-- Ejercicio 2: Listar los empleados que cumplen años en el mes actual
+SELECT FIRST_NAME, LAST_NAME, HIRE_DATE
+FROM EMPLOYEES
+WHERE MONTH(HIRE_DATE) = MONTH(CURRENT DATE);
+
+-- Ejercicio 3: Obtener el nombre, apellido y la antigüedad en años de cada empleado
+SELECT FIRST_NAME, LAST_NAME, DATEDIFF(year, HIRE_DATE, CURRENT DATE) AS YEARS_OF_SERVICE
+FROM EMPLOYEES;
+
+-- Ejercicio 4: Listar los empleados que tienen más de 10 años de antigüedad en la empresa
+SELECT FIRST_NAME, LAST_NAME, HIRE_DATE
+FROM EMPLOYEES
+WHERE DATEDIFF(year, HIRE_DATE, CURRENT DATE) > 10;
+
+-- Ejercicio 5: Obtener el nombre, apellido y la fecha de inicio y fin de los trabajos anteriores de cada empleado
+SELECT e.FIRST_NAME, e.LAST_NAME, jh.START_DATE, jh.END_DATE
+FROM EMPLOYEES e
+JOIN JOB_HISTORY jh ON e.EMPLOYEE_ID = jh.EMPLOYEE_ID
+ORDER BY e.EMPLOYEE_ID, jh.START_DATE;
+
+-- Ejercicio 6: ¿Cuántos empleados fueron contratados en el segundo semestre del año 1997?
+-- a) 5
+-- b) 7
+-- c) 9
+-- d) 11
+SELECT COUNT(*) AS EMPLOYEES_HIRED_1997_S2
+FROM EMPLOYEES
+WHERE HIRE_DATE BETWEEN '1997-07-01' AND '1997-12-31';
+
+
+-- Ejercicio 7: ¿Qué porcentaje de empleados ha trabajado en la empresa por más de 15 años?
+-- a) 10%
+-- b) 20%
+-- c) 30%
+-- d) 40%
+SELECT ROUND(COUNT(CASE WHEN DATEDIFF(year, HIRE_DATE, CURRENT DATE) > 15 THEN 1 END) * 100.0 / COUNT(*), 2) AS PERCENTAGE_OVER_15_YEARS
+FROM EMPLOYEES;
+
+
+-- Ejercicio 8: ¿Cuál fue el mes con la mayor cantidad de contrataciones en el año 1998?
+-- a) Enero
+-- b) Marzo
+-- c) Mayo
+-- d) Julio
+SELECT TOP 1
+  CASE MONTH(HIRE_DATE)
+    WHEN 1 THEN 'Enero'
+    WHEN 3 THEN 'Marzo'
+    WHEN 5 THEN 'Mayo'
+    WHEN 7 THEN 'Julio'
+  END AS HIRE_MONTH,
+  COUNT(*) AS HIRES
+FROM EMPLOYEES
+WHERE YEAR(HIRE_DATE) = 1998
+  AND MONTH(HIRE_DATE) IN (1, 3, 5, 7)
+GROUP BY MONTH(HIRE_DATE)
+ORDER BY HIRES DESC;
+
+
+-- Ejercicio 9: ¿Cuántos años han pasado desde la fecha de contratación más antigua hasta hoy?
+-- a) 25 años
+-- b) 30 años
+-- c) 35 años
+-- d) 40 años
+SELECT DATEDIFF(year, MIN(HIRE_DATE), CURRENT DATE) AS YEARS_SINCE_OLDEST_HIRE
+FROM EMPLOYEES;
+
+
+-- Ejercicio 10: ¿Qué porcentaje de empleados comenzó a trabajar en la empresa en un mes de verano (junio, julio o agosto)?
+-- a) 15%
+-- b) 20%
+-- c) 25%
+-- d) 30%
+SELECT ROUND(COUNT(CASE WHEN MONTH(HIRE_DATE) IN (6, 7, 8) THEN 1 END) * 100.0 / COUNT(*), 2) AS PERCENTAGE_HIRED_IN_SUMMER
+FROM EMPLOYEES;
+
+
+=============================================
+Ejercicios con operaciones aritmeticas:
+============================================
+
+-- Ejercicio 1: Obtener el nombre, apellido y el salario anual de cada empleado (considerando que trabajan 12 meses al año)
+SELECT FIRST_NAME, LAST_NAME, SALARY * 12 AS ANNUAL_SALARY
+FROM EMPLOYEES;
+
+-- Ejercicio 2: Listar los empleados cuyo salario es al menos un 50% más alto que el salario promedio de su departamento
+SELECT e.FIRST_NAME, e.LAST_NAME, e.SALARY
+FROM EMPLOYEES e
+WHERE e.SALARY >= (
+  SELECT 1.5 * AVG(SALARY)
+  FROM EMPLOYEES
+  WHERE DEPARTMENT_ID = e.DEPARTMENT_ID
+);
+
+-- Ejercicio 3: Obtener el nombre, apellido y el salario después de aplicar un aumento del 10% para aquellos empleados que ganan menos de $5,000
+SELECT FIRST_NAME, LAST_NAME, 
+  CASE 
+    WHEN SALARY < 5000 THEN SALARY * 1.1
+    ELSE SALARY
+  END AS NEW_SALARY
+FROM EMPLOYEES;
+
+-- Ejercicio 4: Listar los departamentos y el porcentaje de empleados que ganan más de $10,000 en cada uno
+SELECT d.DEPARTMENT_NAME, 
+  (COUNT(CASE WHEN e.SALARY > 10000 THEN 1 END) * 100.0 / COUNT(*)) AS HIGH_SALARY_PERCENTAGE
+FROM DEPARTMENTS d
+LEFT JOIN EMPLOYEES e ON d.DEPARTMENT_ID = e.DEPARTMENT_ID
+GROUP BY d.DEPARTMENT_NAME;
+
+-- Ejercicio 5: Obtener el nombre, apellido y el salario de los empleados, junto con la diferencia entre su salario y el salario máximo de su puesto de trabajo
+SELECT e.FIRST_NAME, e.LAST_NAME, e.SALARY, j.MAX_SALARY - e.SALARY AS SALARY_DIFFERENCE
+FROM EMPLOYEES e
+JOIN JOBS j ON e.JOB_ID = j.JOB_ID;
+
+-- Ejercicio 6: ¿Cuál es el promedio de años de servicio de los empleados en la empresa?
+-- a) 5 años
+-- b) 7 años
+-- c) 9 años
+-- d) 11 años
+SELECT AVG(DATEDIFF(year, HIRE_DATE, CURRENT DATE)) AS AVG_YEARS_OF_SERVICE
+FROM EMPLOYEES;
+
+
+-- Ejercicio 7: ¿Qué porcentaje del total de salarios representa el salario más alto de la empresa?
+-- a) 5%
+-- b) 10%
+-- c) 15%
+-- d) 20%
+SELECT ROUND((MAX(SALARY) * 100.0) / SUM(SALARY), 2) AS PERCENTAGE_OF_TOTAL
+FROM EMPLOYEES;
+
+
+-- Ejercicio 8: Si se aplicara un impuesto del 25% a todos los salarios superiores a $15,000, ¿cuánto se recaudaría en total?
+-- a) $100,000
+-- b) $150,000
+-- c) $200,000
+-- d) $250,000
+SELECT SUM(CASE WHEN SALARY > 15000 THEN (SALARY - 15000) * 0.25 ELSE 0 END) AS TOTAL_TAX_COLLECTED
+FROM EMPLOYEES;
+
+
+-- Ejercicio 9: ¿Cuántas veces mayor es el salario promedio de los empleados en el departamento con el salario promedio más alto en comparación con el departamento con el salario promedio más bajo?
+-- a) 2 veces
+-- b) 3 veces
+-- c) 4 veces
+-- d) 5 veces
+WITH dept_avg_salaries AS (
+  SELECT d.DEPARTMENT_NAME, AVG(e.SALARY) AS AVG_SALARY
+  FROM EMPLOYEES e
+  JOIN DEPARTMENTS d ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+  GROUP BY d.DEPARTMENT_NAME
+)
+SELECT ROUND(MAX(AVG_SALARY) / MIN(AVG_SALARY), 0) AS SALARY_RATIO
+FROM dept_avg_salaries;
+
+
+-- Ejercicio 10: Si se otorgara un bono equivalente al 10% de la diferencia entre el salario del empleado y el salario máximo de su puesto de trabajo, ¿cuál sería el costo total de estos bonos para la empresa?
+-- a) $200,000
+-- b) $300,000
+-- c) $400,000
+-- d) $500,000
+SELECT SUM((j.MAX_SALARY - e.SALARY) * 0.1) AS TOTAL_BONUS_COST
+FROM EMPLOYEES e
+JOIN JOBS j ON e.JOB_ID = j.JOB_ID;
+
+
+===========================================
+Ejercicios de tablas relacionadas
+=============================================
+-- Ejercicio 1: Obtener el nombre, apellido, título del puesto y nombre del departamento de cada empleado
+SELECT e.FIRST_NAME, e.LAST_NAME, j.JOB_TITLE, d.DEPARTMENT_NAME
+FROM EMPLOYEES e
+JOIN JOBS j ON e.JOB_ID = j.JOB_ID
+JOIN DEPARTMENTS d ON e.DEPARTMENT_ID = d.DEPARTMENT_ID;
+
+-- Ejercicio 2: Listar los empleados y el nombre de su gerente
+SELECT e.FIRST_NAME AS EMPLOYEE_FIRST_NAME, e.LAST_NAME AS EMPLOYEE_LAST_NAME,
+       m.FIRST_NAME AS MANAGER_FIRST_NAME, m.LAST_NAME AS MANAGER_LAST_NAME
+FROM EMPLOYEES e
+LEFT JOIN EMPLOYEES m ON e.MANAGER_ID = m.EMPLOYEE_ID;
+
+-- Ejercicio 3: Obtener el nombre, apellido y el número de trabajos anteriores de cada empleado
+SELECT e.FIRST_NAME, e.LAST_NAME, COUNT(jh.EMPLOYEE_ID) AS NUM_PREVIOUS_JOBS
+FROM EMPLOYEES e
+LEFT JOIN JOB_HISTORY jh ON e.EMPLOYEE_ID = jh.EMPLOYEE_ID
+GROUP BY e.FIRST_NAME, e.LAST_NAME;
+
+-- Ejercicio 4: Listar los departamentos y la ciudad en la que se encuentran
+SELECT d.DEPARTMENT_NAME, l.CITY
+FROM DEPARTMENTS d
+JOIN LOCATIONS l ON d.LOCATION_ID = l.LOCATION_ID;
+
+-- Ejercicio 5: Obtener el nombre, apellido y el nombre de la región en la que trabajan los empleados
+SELECT e.FIRST_NAME, e.LAST_NAME, r.REGION_NAME
+FROM EMPLOYEES e
+JOIN DEPARTMENTS d ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+JOIN LOCATIONS l ON d.LOCATION_ID = l.LOCATION_ID
+JOIN COUNTRIES c ON l.COUNTRY_ID = c.COUNTRY_ID
+JOIN REGIONS r ON c.REGION_ID = r.REGION_ID;
+
+=========================================
+Ejercicios de concatenación
+==========================================
+
+-- Ejercicio 1: Obtener el nombre completo de cada empleado (nombre y apellido concatenados)
+SELECT FIRST_NAME || ' ' || LAST_NAME AS FULL_NAME
+FROM EMPLOYEES;
+
+-- Ejercicio 2: Listar los empleados con su información de contacto en un formato específico
+SELECT FIRST_NAME || ' ' || LAST_NAME || ' - ' || EMAIL || ' - ' || PHONE_NUMBER AS CONTACT_INFO
+FROM EMPLOYEES;
+
+-- Ejercicio 3: Obtener el historial laboral de cada empleado en un formato legible
+SELECT e.FIRST_NAME || ' ' || e.LAST_NAME || ' worked as ' || j.JOB_TITLE || 
+       ' from ' || jh.START_DATE || ' to ' || jh.END_DATE AS EMPLOYMENT_HISTORY
+FROM EMPLOYEES e
+JOIN JOB_HISTORY jh ON e.EMPLOYEE_ID = jh.EMPLOYEE_ID
+JOIN JOBS j ON jh.JOB_ID = j.JOB_ID;
+
+-- Ejercicio 4: Listar los departamentos con su ubicación completa (ciudad, estado y país)
+SELECT d.DEPARTMENT_NAME || ' - ' || l.CITY || ', ' || l.STATE_PROVINCE || ', ' || c.COUNTRY_NAME AS LOCATION
+FROM DEPARTMENTS d
+JOIN LOCATIONS l ON d.LOCATION_ID = l.LOCATION_ID
+JOIN COUNTRIES c ON l.COUNTRY_ID = c.COUNTRY_ID;
+
+-- Ejercicio 5: Obtener el nombre completo de cada empleado junto con el nombre completo de su gerente
+SELECT e.FIRST_NAME || ' ' || e.LAST_NAME || ' - Manager: ' || 
+       m.FIRST_NAME || ' ' || m.LAST_NAME AS EMPLOYEE_AND_MANAGER
+FROM EMPLOYEES e
+LEFT JOIN EMPLOYEES m ON e.MANAGER_ID = m.EMPLOYEE_ID;
+
+======================================
+Ejercicios con alternativas y respuestas
+=======================================
+-- Ejercicio 1: ¿Cuál es el número total de empleados en el departamento de 'Sales'?
+-- a) 5
+-- b) 10
+-- c) 15
+-- d) 20
+SELECT COUNT(*) AS TOTAL_EMPLOYEES
+FROM EMPLOYEES
+WHERE DEPARTMENT_ID = (SELECT DEPARTMENT_ID FROM DEPARTMENTS WHERE DEPARTMENT_NAME = 'Sales');
+
+
+-- Ejercicio 2: ¿Quién es el empleado con el salario más alto?
+-- a) Steven King
+-- b) Neena Kochhar
+-- c) Lex De Haan
+-- d) John Russell
+SELECT FIRST_NAME, LAST_NAME
+FROM EMPLOYEES
+WHERE SALARY = (SELECT MAX(SALARY) FROM EMPLOYEES);
+
+
+-- Ejercicio 3: ¿Cuántos empleados fueron contratados en el año 1997?
+-- a) 5
+-- b) 10
+-- c) 15
+-- d) 20
+SELECT COUNT(*) AS EMPLOYEES_HIRED_1997
+FROM EMPLOYEES
+WHERE YEAR(HIRE_DATE) = 1997;
+
+
+-- Ejercicio 4: ¿Cuál es el salario promedio de los empleados en el departamento 'IT'?
+-- a) $5,000
+-- b) $6,000
+-- c) $7,000
+-- d) $8,000
+SELECT AVG(SALARY) AS AVG_SALARY_IT
+FROM EMPLOYEES
+WHERE DEPARTMENT_ID = (SELECT DEPARTMENT_ID FROM DEPARTMENTS WHERE DEPARTMENT_NAME = 'IT');
+
+
+-- Ejercicio 5: ¿Cuál departamento tiene el mayor número de empleados?
+-- a) Sales
+-- b) IT
+-- c) Marketing
+-- d) Executive
+SELECT d.DEPARTMENT_NAME
+FROM EMPLOYEES e
+JOIN DEPARTMENTS d ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+GROUP BY d.DEPARTMENT_NAME
+ORDER BY COUNT(*) DESC
+LIMIT 1;
+=======================================
+Ejercicios de subconsulta:
+======================================
+-- Ejercicio 1: Obtener los nombres de los departamentos que tienen al menos un empleado cuyo salario es mayor que el salario promedio de todos los empleados. ¿Qué podría indicar este resultado sobre la distribución salarial en estos departamentos?
+SELECT DISTINCT d.DEPARTMENT_NAME
+FROM DEPARTMENTS d
+WHERE EXISTS (
+  SELECT 1
+  FROM EMPLOYEES e
+  WHERE e.DEPARTMENT_ID = d.DEPARTMENT_ID
+    AND e.SALARY > (SELECT AVG(SALARY) FROM EMPLOYEES)
+);
+
+-- Ejercicio 2: Listar los puestos de trabajo (job titles) donde el salario máximo para ese puesto es menor que el salario mínimo de cualquier puesto de 'Manager'. ¿Qué sugiere esto sobre la jerarquía salarial en la empresa?
+SELECT j.JOB_TITLE
+FROM JOBS j
+WHERE j.MAX_SALARY < (
+  SELECT MIN(j2.MIN_SALARY)
+  FROM JOBS j2
+  WHERE j2.JOB_TITLE LIKE '%Manager%'
+);
+
+-- Ejercicio 3: Para cada país, obtener el número de ciudades en las que hay departamentos de la empresa. ¿Cómo se podría interpretar este resultado en términos de la presencia global de la empresa?
+SELECT c.COUNTRY_NAME, COUNT(DISTINCT l.CITY) AS NUM_CITIES
+FROM COUNTRIES c
+JOIN LOCATIONS l ON c.COUNTRY_ID = l.COUNTRY_ID
+WHERE EXISTS (
+  SELECT 1
+  FROM DEPARTMENTS d
+  WHERE d.LOCATION_ID = l.LOCATION_ID
+)
+GROUP BY c.COUNTRY_NAME;
+
+-- Ejercicio 4: Obtener los nombres de los empleados que ganan más que el salario promedio de su departamento, pero menos que el salario máximo de su puesto de trabajo. ¿Qué podría indicar esta situación sobre su posición y potencial de crecimiento en la empresa?
+SELECT e.FIRST_NAME, e.LAST_NAME
+FROM EMPLOYEES e
+WHERE e.SALARY > (
+  SELECT AVG(SALARY)
+  FROM EMPLOYEES
+  WHERE DEPARTMENT_ID = e.DEPARTMENT_ID
+) AND e.SALARY < (
+  SELECT MAX_SALARY
+  FROM JOBS
+  WHERE JOB_ID = e.JOB_ID
+);
+
+-- Ejercicio 5: Listar los departamentos donde el salario total (suma de todos los salarios) es mayor que el salario promedio de todos los gerentes. ¿Qué podría sugerir este resultado sobre la importancia o rentabilidad de estos departamentos?
+SELECT d.DEPARTMENT_NAME
+FROM DEPARTMENTS d
+WHERE (
+  SELECT SUM(SALARY)
+  FROM EMPLOYEES
+  WHERE DEPARTMENT_ID = d.DEPARTMENT_ID
+) > (
+  SELECT AVG(SALARY)
+  FROM EMPLOYEES
+  WHERE EMPLOYEE_ID IN (
+    SELECT DISTINCT MANAGER_ID
+    FROM EMPLOYEES
+    WHERE MANAGER_ID IS NOT NULL
+  )
+);
+
+
+===========================================
+Ejercicios de bonos y o descuentos:
+=============================================
+
+-- Ejercicio 1: Aplicar un bono del 10% a los empleados cuyo salario está por debajo del salario promedio de su departamento. Mostrar el nombre, salario original y salario con el bono.
+SELECT e.FIRST_NAME, e.LAST_NAME, e.SALARY AS ORIGINAL_SALARY,
+       CASE WHEN e.SALARY < (
+         SELECT AVG(SALARY)
+         FROM EMPLOYEES
+         WHERE DEPARTMENT_ID = e.DEPARTMENT_ID
+       ) THEN e.SALARY * 1.1
+       ELSE e.SALARY
+       END AS SALARY_WITH_BONUS
+FROM EMPLOYEES e;
+
+-- Ejercicio 2: Ofrecer un descuento del 5% en el salario a los empleados que han trabajado en la empresa por más de 10 años. Mostrar el nombre, fecha de contratación, salario original y salario con el descuento.
+SELECT e.FIRST_NAME, e.LAST_NAME, e.HIRE_DATE, e.SALARY AS ORIGINAL_SALARY,
+       CASE WHEN DATEDIFF(year, e.HIRE_DATE, CURRENT DATE) > 10 THEN e.SALARY * 0.95
+       ELSE e.SALARY
+       END AS SALARY_WITH_DISCOUNT
+FROM EMPLOYEES e;
+
+-- Ejercicio 3: Dar un bono del 15% a los empleados que pertenecen a los departamentos con un salario promedio superior a $10,000. Mostrar el nombre, departamento, salario original y salario con el bono.
+SELECT e.FIRST_NAME, e.LAST_NAME, d.DEPARTMENT_NAME, e.SALARY AS ORIGINAL_SALARY,
+       CASE WHEN d.DEPARTMENT_ID IN (
+         SELECT DEPARTMENT_ID
+         FROM EMPLOYEES
+         GROUP BY DEPARTMENT_ID
+         HAVING AVG(SALARY) > 10000
+       ) THEN e.SALARY * 1.15
+       ELSE e.SALARY
+       END AS SALARY_WITH_BONUS
+FROM EMPLOYEES e
+JOIN DEPARTMENTS d ON e.DEPARTMENT_ID = d.DEPARTMENT_ID;
+
+-- Ejercicio 4: Aplicar un descuento del 3% a los empleados cuyo gerente tiene un salario superior a $15,000. Mostrar el nombre del empleado, nombre del gerente, salario original y salario con el descuento.
+SELECT e.FIRST_NAME AS EMPLOYEE_FIRST_NAME, e.LAST_NAME AS EMPLOYEE_LAST_NAME,
+       m.FIRST_NAME AS MANAGER_FIRST_NAME, m.LAST_NAME AS MANAGER_LAST_NAME,
+       e.SALARY AS ORIGINAL_SALARY,
+       CASE WHEN m.SALARY > 15000 THEN e.SALARY * 0.97
+       ELSE e.SALARY
+       END AS SALARY_WITH_DISCOUNT
+FROM EMPLOYEES e
+LEFT JOIN EMPLOYEES m ON e.MANAGER_ID = m.EMPLOYEE_ID;
+
+-- Ejercicio 5: Dar un bono del 8% a los empleados que han tenido más de dos trabajos diferentes en la empresa. Mostrar el nombre, número de trabajos y salario con el bono.
+SELECT e.FIRST_NAME, e.LAST_NAME, COUNT(jh.EMPLOYEE_ID) AS NUM_JOBS,
+       CASE WHEN COUNT(jh.EMPLOYEE_ID) > 2 THEN e.SALARY * 1.08
+       ELSE e.SALARY
+       END AS SALARY_WITH_BONUS
+FROM EMPLOYEES e
+LEFT JOIN JOB_HISTORY jh ON e.EMPLOYEE_ID = jh.EMPLOYEE_ID
+GROUP BY e.FIRST_NAME, e.LAST_NAME, e.SALARY;
+
+======================================
+Ejericico DML y DDL variado:
+====================================
+
+-- Ejercicio 1: Actualizar el salario de todos los empleados en un 10% para aquellos departamentos cuyo salario promedio es menor a $5,000.
+UPDATE EMPLOYEES
+SET SALARY = SALARY * 1.1
+WHERE DEPARTMENT_ID IN (
+  SELECT DEPARTMENT_ID
+  FROM EMPLOYEES
+  GROUP BY DEPARTMENT_ID
+  HAVING AVG(SALARY) < 5000
+);
+
+-- Ejercicio 2: Eliminar los empleados que no han tenido ningún trabajo en el historial de la empresa (es decir, aquellos que no aparecen en la tabla JOB_HISTORY) y que fueron contratados antes del año 2000.
+DELETE FROM EMPLOYEES
+WHERE EMPLOYEE_ID NOT IN (
+  SELECT EMPLOYEE_ID
+  FROM JOB_HISTORY
+) AND YEAR(HIRE_DATE) < 2000;
+
+-- Ejercicio 3: Para cada empleado, insertar un registro en la tabla JOB_HISTORY con su trabajo actual si no existe ya un registro para su combinación de EMPLOYEE_ID y JOB_ID en la tabla JOB_HISTORY.
+INSERT INTO JOB_HISTORY (EMPLOYEE_ID, START_DATE, END_DATE, JOB_ID, DEPARTMENT_ID)
+SELECT 
+  e.EMPLOYEE_ID,
+  e.HIRE_DATE,
+  CURRENT DATE,
+  e.JOB_ID,
+  e.DEPARTMENT_ID
+FROM EMPLOYEES e
+WHERE NOT EXISTS (
+  SELECT 1 
+  FROM JOB_HISTORY jh
+  WHERE jh.EMPLOYEE_ID = e.EMPLOYEE_ID AND jh.JOB_ID = e.JOB_ID
+);
+
+-- Ejercicio 4: Crear una nueva tabla llamada HIGH_PAID_EMPLOYEES que contenga todos los empleados cuyo salario está por encima del salario promedio de su departamento.
+SELECT 
+  EMPLOYEE_ID,
+  FIRST_NAME,
+  LAST_NAME,
+  EMAIL,
+  PHONE_NUMBER,
+  HIRE_DATE,
+  JOB_ID,
+  SALARY,
+  COMMISSION_PCT,
+  MANAGER_ID,
+  DEPARTMENT_ID
+INTO HIGH_PAID_EMPLOYEES
+FROM EMPLOYEES e
+WHERE SALARY > (
+  SELECT AVG(SALARY)
+  FROM EMPLOYEES
+  WHERE DEPARTMENT_ID = e.DEPARTMENT_ID
+);
+
+-- Ejercicio 5: Actualizar la tabla DEPARTMENTS. Para aquellos departamentos que no tienen un gerente, asignar como gerente al empleado con el salario más alto de ese departamento.
+UPDATE DEPARTMENTS
+SET MANAGER_ID = (
+  SELECT TOP 1 EMPLOYEE_ID
+  FROM EMPLOYEES
+  WHERE DEPARTMENT_ID = DEPARTMENTS.DEPARTMENT_ID
+  ORDER BY SALARY DESC
+)
+WHERE MANAGER_ID IS NULL;
+
+=====================================
+Preguntas en SQl y razonamiento crítico:
+=================================
+
+-- Ejercicio 1: Obtener los nombres de los departamentos que tienen al menos un empleado cuyo salario es mayor que el salario promedio de todos los empleados. ¿Qué podría indicar este resultado sobre la distribución salarial en estos departamentos?
+SELECT DISTINCT d.DEPARTMENT_NAME
+FROM DEPARTMENTS d
+WHERE EXISTS (
+  SELECT 1
+  FROM EMPLOYEES e
+  WHERE e.DEPARTMENT_ID = d.DEPARTMENT_ID
+    AND e.SALARY > (SELECT AVG(SALARY) FROM EMPLOYEES)
+);
+
+-- Ejercicio 2: Listar los puestos de trabajo (job titles) donde el salario máximo para ese puesto es menor que el salario mínimo de cualquier puesto de 'Manager'. ¿Qué sugiere esto sobre la jerarquía salarial en la empresa?
+SELECT j.JOB_TITLE
+FROM JOBS j
+WHERE j.MAX_SALARY < (
+  SELECT MIN(j2.MIN_SALARY)
+  FROM JOBS j2
+  WHERE j2.JOB_TITLE LIKE '%Manager%'
+);
+
+-- Ejercicio 3: Para cada país, obtener el número de ciudades en las que hay departamentos de la empresa. ¿Cómo se podría interpretar este resultado en términos de la presencia global de la empresa?
+SELECT c.COUNTRY_NAME, COUNT(DISTINCT l.CITY) AS NUM_CITIES
+FROM COUNTRIES c
+JOIN LOCATIONS l ON c.COUNTRY_ID = l.COUNTRY_ID
+WHERE EXISTS (
+  SELECT 1
+  FROM DEPARTMENTS d
+  WHERE d.LOCATION_ID = l.LOCATION_ID
+)
+GROUP BY c.COUNTRY_NAME;
+
+-- Ejercicio 4: Obtener los nombres de los empleados que ganan más que el salario promedio de su departamento, pero menos que el salario máximo de su puesto de trabajo. ¿Qué podría indicar esta situación sobre su posición y potencial de crecimiento en la empresa?
+SELECT e.FIRST_NAME, e.LAST_NAME
+FROM EMPLOYEES e
+WHERE e.SALARY > (
+  SELECT AVG(SALARY)
+  FROM EMPLOYEES
+  WHERE DEPARTMENT_ID = e.DEPARTMENT_ID
+) AND e.SALARY < (
+  SELECT MAX_SALARY
+  FROM JOBS
+  WHERE JOB_ID = e.JOB_ID
+);
+
+-- Ejercicio 5: Listar los departamentos donde el salario total (suma de todos los salarios) es mayor que el salario promedio de todos los gerentes. ¿Qué podría sugerir este resultado sobre la importancia o rentabilidad de estos departamentos?
+SELECT d.DEPARTMENT_NAME
+FROM DEPARTMENTS d
+WHERE (
+  SELECT SUM(SALARY)
+  FROM EMPLOYEES
+  WHERE DEPARTMENT_ID = d.DEPARTMENT_ID
+) > (
+  SELECT AVG(SALARY)
+  FROM EMPLOYEES
+  WHERE EMPLOYEE_ID IN (
+    SELECT DISTINCT MANAGER_ID
+    FROM EMPLOYEES
+    WHERE MANAGER_ID IS NOT NULL
+  )
+);
